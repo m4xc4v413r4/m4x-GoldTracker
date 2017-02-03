@@ -13,7 +13,7 @@ local text = frame:CreateFontString(nil, "ARTWORK");
 
 text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
 text:SetJustifyH("LEFT");
-text:SetPoint("BOTTOM", UIParent, 0, 60);
+text:SetPoint("BOTTOM", UIParent, 0, 100);
 
 frame:SetFrameStrata("HIGH");
 frame:SetAllPoints(text);
@@ -33,6 +33,7 @@ local function UpdateFrame()
 	elseif money < moneyStart then
 		text:SetTextColor(1, 0, 0);
 	end
+	m4xGoldTrackDB[realm][name] = money;
 	print("Update: " .. moneyStart, money);
 	moneyDiff = money - moneyStart;
 	moneyFormat = GetCoinTextureString(abs(moneyDiff));
@@ -41,11 +42,19 @@ local function UpdateFrame()
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
+	if event == "PLAYER_ENTERING_WORLD" then
+		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
+		print("If: " .. moneyStart, money);
+		moneyStart = GetMoney();
+		money = GetMoney();
+		print("If: " .. moneyStart, money);
+		UpdateFrame();
+	else
 		print("Event: " .. moneyStart, money);
 		money = GetMoney();
 		print("Event: " .. moneyStart, money);
-		m4xGoldTrackDB[realm][name] = money;
 		UpdateFrame();
+	end
 end);
 
 frame:SetScript("OnMouseUp", function(self, button)
