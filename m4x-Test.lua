@@ -1,5 +1,5 @@
-local moneyStart = GetMoney();;
-local money = GetMoney();;
+local moneyStart = GetMoney();
+local money = GetMoney();
 print("Start: " .. moneyStart, money);
 local moneyDiff = 0;
 local moneyFormat = nil;
@@ -13,7 +13,7 @@ local text = frame:CreateFontString(nil, "ARTWORK");
 
 text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
 text:SetJustifyH("LEFT");
-text:SetPoint("TOPLEFT", UIParent, "TOP", 300, 0);
+text:SetPoint("BOTTOM", UIParent, 0, 60);
 
 frame:SetFrameStrata("HIGH");
 frame:SetAllPoints(text);
@@ -25,7 +25,7 @@ frame:RegisterEvent("TRADE_MONEY_CHANGED");
 frame:RegisterEvent("SEND_MAIL_MONEY_CHANGED");
 frame:RegisterEvent("SEND_MAIL_COD_CHANGED");
 
-frame:Show();
+text:Show();
 
 local function UpdateFrame()
 	if money >= moneyStart then
@@ -56,7 +56,7 @@ frame:SetScript("OnMouseUp", function(self, button)
 end);
 
 frame:SetScript("OnEnter", function(self)
-	GameTooltip:SetOwner(self, "ANCHOR_BOTTOM");
+	GameTooltip:SetOwner(self, "ANCHOR_TOP");
 	GameTooltip:SetText("Gold List");
 	for iRealm, _ in pairs(m4xGoldTrackDB) do
 		GameTooltip:AddLine(" ");
