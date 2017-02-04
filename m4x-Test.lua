@@ -1,12 +1,10 @@
-local moneyStart = GetMoney();
-local money = GetMoney();
-print("Start: " .. moneyStart, money);
-local moneyDiff = 0;
-local moneyFormat = nil;
+m4xGoldTrackDB = {};
 local name, _ = UnitName("player");
 local realm = GetRealmName();
-m4xGoldTrackDB = {};
-m4xGoldTrackDB[realm] = {};
+local moneyStart = GetMoney();
+local money = GetMoney();
+local moneyDiff = 0;
+local moneyFormat = nil;
 
 local frame = CreateFrame("Button", "m4xMoneyFrame", UIParent);
 local text = frame:CreateFontString(nil, "ARTWORK");
@@ -28,31 +26,27 @@ frame:RegisterEvent("SEND_MAIL_COD_CHANGED");
 text:Show();
 
 local function UpdateFrame()
+	money = GetMoney();
+	m4xGoldTrackDB[realm][name] = money;
 	if money >= moneyStart then
 		text:SetTextColor(0, 1, 0);
 	elseif money < moneyStart then
 		text:SetTextColor(1, 0, 0);
 	end
-	m4xGoldTrackDB[realm][name] = money;
-	print("Update: " .. moneyStart, money);
 	moneyDiff = money - moneyStart;
 	moneyFormat = GetCoinTextureString(abs(moneyDiff));
-	print("Update: " .. moneyStart, money);
 	text:SetText(moneyFormat);
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
 	if event == "PLAYER_ENTERING_WORLD" then
+		if not m4xGoldTrackDB[realm] then
+			m4xGoldTrackDB[realm] = {};
+		end
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
-		print("If: " .. moneyStart, money);
 		moneyStart = GetMoney();
-		money = GetMoney();
-		print("If: " .. moneyStart, money);
 		UpdateFrame();
 	else
-		print("Event: " .. moneyStart, money);
-		money = GetMoney();
-		print("Event: " .. moneyStart, money);
 		UpdateFrame();
 	end
 end);
