@@ -1,0 +1,7 @@
+ignore:
+    - README.md
+    - CHANGELOG.md
+
+manual-changelog: CHANGELOG.md
+
+license-output: LICENSE.txt

@@ -3,6 +3,6 @@
 ## Notes: Test addon
 ## Author: m4xc4v413r4
 ## Version: 1.0
-## SavedVariables: m4xGoldTrackDB
+## SavedVariables: m4xGoldTrackDiff, m4xGoldTrackCurr
 
 m4x-Test.lua
