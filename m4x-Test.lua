@@ -2,13 +2,15 @@ local name, _ = UnitName("Player");
 local realm = GetRealmName("Player");
 local faction = UnitFactionGroup("Player");
 local _, class = UnitClass("Player");
--- local timeStart = ;
--- local timeCurr = ;
+local timeStart = time();
+local timeCurr = time();
 local moneyStart = GetMoney();
 local money = GetMoney();
 local moneyCurr = GetMoney();
+local moneySession = 0;
 local moneyToday = 0;
 local moneyDiff = 0;
+local moneyTemp = nil;
 local moneyFormatDiff = nil;
 local moneyFormatCurr = nil;
 local moneyViewToggle = "Gold";
@@ -48,10 +50,20 @@ local function FrameDiff()
 end
 
 local function UpdateValues()
+	timeCurr = time()
 	moneyCurr = GetMoney();
 	moneyDiff = moneyCurr - money;
-	moneyToday = moneyCurr - moneyStart;
+	moneySession = moneyCurr - moneyStart;
+	if difftime(timeCurr, timeStart) > 86400 then
+		moneyToday = 0;
+		timeStart = time();
+		m4xGoldTrack[realm][name]["time"] = timeStart;
+	end
+	if moneyTemp ~= moneySession then
+		moneyToday = moneyToday + moneySession - moneyTemp;
+	end
 	m4xGoldTrack[realm][name]["curr"] = moneyCurr;
+	m4xGoldTrack[realm][name]["session"] = moneySession;
 	m4xGoldTrack[realm][name]["today"] = moneyToday;
 	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
 	moneyFormatCurr = GetCoinTextureString(abs(moneyCurr));
@@ -72,13 +84,16 @@ frame:SetScript("OnEvent", function(self, event, ...)
 			m4xGoldTrack[realm][name]["faction"] = faction;
 			m4xGoldTrack[realm][name]["class"] = class;
 		end
+		if m4xGoldTrack[realm][name]["today"] then
+			moneyToday = m4xGoldTrack[realm][name]["today"];
+			timeStart = m4xGoldTrack[realm][name]["time"];
+		end
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
 		money = GetMoney();
 		moneyStart = GetMoney();
-		UpdateValues();
-	else
-		UpdateValues();
 	end
+	moneyTemp = moneySession;
+	UpdateValues();
 end);
 
 local function OnEnter(self)
@@ -87,16 +102,13 @@ local function OnEnter(self)
 	for tRealm, _ in pairs(m4xGoldTrack) do
 		GameTooltip:AddLine(" ");
 		GameTooltip:AddLine(tRealm);
-		GameTooltip:AddLine(" ");
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
-				if tKey == "class" then
-					classColor = RAID_CLASS_COLORS[tValue];
-				end
+				classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
 				if tKey == "curr" and moneyViewToggle == "Gold" then
 					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(tValue), classColor.r, classColor.g, classColor.b , 1, 1, 1);
 				end
-				if tKey == "today" and moneyViewToggle == "Today" then
+				if (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") then
 					if tValue >= 0 then
 						tColor = {0, 1, 0};
 					else
@@ -117,18 +129,19 @@ end);
 frame:SetScript("OnMouseUp", function(self, button)
 	if button == "LeftButton" then
 		if moneyViewToggle == "Gold" then
+			moneyViewToggle = "Session";
+		elseif moneyViewToggle == "Session" then
 			moneyViewToggle = "Today";
-			UpdateValues();
 		else
 			moneyViewToggle = "Gold";
-			UpdateValues();
 		end
 		OnEnter(self);
 	end
 	if button == "RightButton" then
 		money = GetMoney();
-		UpdateValues();
 	end
+	moneyTemp = moneySession;
+	UpdateValues();
 end);
 
 frame:SetScript("OnEnter", OnEnter);
