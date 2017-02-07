@@ -1,14 +1,18 @@
-m4xGoldTrackCurr = {};
-m4xGoldTrackDiff = {};
-local moneyColor = {1, 0, 0};
-local name, _ = UnitName("player");
-local realm = GetRealmName();
+local name, _ = UnitName("Player");
+local realm = GetRealmName("Player");
+local faction = UnitFactionGroup("Player");
+local _, class = UnitClass("Player");
+-- local timeStart = ;
+-- local timeCurr = ;
 local moneyStart = GetMoney();
 local money = GetMoney();
+local moneyCurr = GetMoney();
+local moneyToday = 0;
 local moneyDiff = 0;
 local moneyFormatDiff = nil;
 local moneyFormatCurr = nil;
-local moneyViewToggle = 1;
+local moneyViewToggle = "Gold";
+m4xGoldTrack = {};
 
 local frame = CreateFrame("Button", "m4xMoneyFrame", UIParent);
 local text = frame:CreateFontString(nil, "ARTWORK");
@@ -35,8 +39,8 @@ local function FrameCurr()
 end
 
 local function FrameDiff()
-	if money >= moneyStart then
-		text:SetTextColor(unpack(moneyColor));
+	if moneyDiff >= 0 then
+		text:SetTextColor(0, 1, 0);
 	else
 		text:SetTextColor(1, 0, 0);
 	end
@@ -44,13 +48,14 @@ local function FrameDiff()
 end
 
 local function UpdateValues()
-	money = GetMoney();
-	moneyDiff = money - moneyStart;
-	m4xGoldTrackCurr[realm][name] = money;
-	m4xGoldTrackDiff[realm][name] = moneyDiff;
+	moneyCurr = GetMoney();
+	moneyDiff = moneyCurr - money;
+	moneyToday = moneyCurr - moneyStart;
+	m4xGoldTrack[realm][name]["curr"] = moneyCurr;
+	m4xGoldTrack[realm][name]["today"] = moneyToday;
 	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
-	moneyFormatCurr = GetCoinTextureString(abs(money));
-	if moneyViewToggle == 1 then
+	moneyFormatCurr = GetCoinTextureString(abs(moneyCurr));
+	if moneyViewToggle == "Gold" then
 		FrameCurr();
 	else
 		FrameDiff();
@@ -59,11 +64,16 @@ end
 
 frame:SetScript("OnEvent", function(self, event, ...)
 	if event == "PLAYER_ENTERING_WORLD" then
-		if not m4xGoldTrackCurr[realm] then
-			m4xGoldTrackCurr[realm] = {};
-			m4xGoldTrackDiff[realm] = {};
+		if not m4xGoldTrack[realm] then
+			m4xGoldTrack[realm] = {};
+		end
+		if not m4xGoldTrack[realm][name] then
+			m4xGoldTrack[realm][name] = {};
+			m4xGoldTrack[realm][name]["faction"] = faction;
+			m4xGoldTrack[realm][name]["class"] = class;
 		end
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
+		money = GetMoney();
 		moneyStart = GetMoney();
 		UpdateValues();
 	else
@@ -73,24 +83,27 @@ end);
 
 local function OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_TOP");
-	if moneyViewToggle == 1 then
-		GameTooltip:SetText("Gold Curr");
-		for iRealm, _ in pairs(m4xGoldTrackCurr) do
-			GameTooltip:AddLine(" ");
-			GameTooltip:AddLine(iRealm);
-			GameTooltip:AddLine(" ");
-			for iName, iMoney in pairs(m4xGoldTrackCurr[iRealm]) do
-				GameTooltip:AddDoubleLine(iName .. ":", GetCoinTextureString(iMoney),_ ,_ ,_ ,1 ,1 ,1);
-			end
-		end
-	else
-		GameTooltip:SetText("Gold Diff");
-		for iRealm, _ in pairs(m4xGoldTrackDiff) do
-			GameTooltip:AddLine(" ");
-			GameTooltip:AddLine(iRealm);
-			GameTooltip:AddLine(" ");
-			for iName, iMoney in pairs(m4xGoldTrackDiff[iRealm]) do
-				GameTooltip:AddDoubleLine(iName .. ":", GetCoinTextureString(iMoney),_,_,_,0,1,0);
+	GameTooltip:SetText(moneyViewToggle);
+	for tRealm, _ in pairs(m4xGoldTrack) do
+		GameTooltip:AddLine(" ");
+		GameTooltip:AddLine(tRealm);
+		GameTooltip:AddLine(" ");
+		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
+			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
+				if tKey == "class" then
+					classColor = RAID_CLASS_COLORS[tValue];
+				end
+				if tKey == "curr" and moneyViewToggle == "Gold" then
+					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(tValue), classColor.r, classColor.g, classColor.b , 1, 1, 1);
+				end
+				if tKey == "today" and moneyViewToggle == "Today" then
+					if tValue >= 0 then
+						tColor = {0, 1, 0};
+					else
+						tColor = {1, 0, 0};
+					end
+					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(abs(tValue)), classColor.r, classColor.g, classColor.b , unpack(tColor));
+				end
 			end
 		end
 	end
@@ -103,17 +116,17 @@ end);
 
 frame:SetScript("OnMouseUp", function(self, button)
 	if button == "LeftButton" then
-		if moneyViewToggle == 1 then
-			moneyViewToggle = 2;
+		if moneyViewToggle == "Gold" then
+			moneyViewToggle = "Today";
 			UpdateValues();
 		else
-			moneyViewToggle = 1;
+			moneyViewToggle = "Gold";
 			UpdateValues();
 		end
 		OnEnter(self);
 	end
 	if button == "RightButton" then
-		moneyStart = GetMoney();
+		money = GetMoney();
 		UpdateValues();
 	end
 end);
