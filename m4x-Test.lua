@@ -56,8 +56,8 @@ local function UpdateValues()
 	moneySession = moneyCurr - moneyStart;
 	if difftime(timeCurr, timeStart) > 86400 then
 		moneyToday = 0;
-		timeStart = time();
-		m4xGoldTrack[realm][name]["time"] = timeStart;
+		timeStart = timeCurr;
+		m4xGoldTrack[realm][name]["time"] = timeCurr;
 	end
 	if moneyTemp ~= moneySession then
 		moneyToday = moneyToday + moneySession - moneyTemp;
@@ -105,6 +105,10 @@ local function OnEnter(self)
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
 				classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
+				if difftime(timeCurr, m4xGoldTrack[tRealm][tName]["time"]) > 30 then
+					m4xGoldTrack[tRealm][tName]["today"] = 0;
+					m4xGoldTrack[tRealm][tName]["time"] = timeCurr;
+				end
 				if tKey == "curr" and moneyViewToggle == "Gold" then
 					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(tValue), classColor.r, classColor.g, classColor.b , 1, 1, 1);
 				end
