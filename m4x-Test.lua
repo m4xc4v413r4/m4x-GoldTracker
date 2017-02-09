@@ -2,15 +2,18 @@ local name, _ = UnitName("Player");
 local realm = GetRealmName("Player");
 local faction = UnitFactionGroup("Player");
 local _, class = UnitClass("Player");
-local timeStart = time();
-local timeCurr = time();
+local dayStart = date("%y%m%d");
+local dayCurr = date("%y%m%d");
+local monthStart = date("%y%m");
+local monthCurr = date("%y%m");
 local moneyStart = GetMoney();
 local money = GetMoney();
 local moneyCurr = GetMoney();
 local moneySession = 0;
 local moneyToday = 0;
+local moneyThisMonth = 0;
 local moneyDiff = 0;
-local moneyTemp = nil;
+local moneyTemp = 0;
 local moneyFormatDiff = nil;
 local moneyFormatCurr = nil;
 local moneyViewToggle = "Gold";
@@ -35,64 +38,75 @@ frame:RegisterEvent("SEND_MAIL_COD_CHANGED");
 
 text:Show();
 
-local function FrameCurr()
-	text:SetTextColor(1, 1, 1);
-	text:SetText(moneyFormatCurr);
-end
-
-local function FrameDiff()
-	if moneyDiff >= 0 then
-		text:SetTextColor(0, 1, 0);
-	else
-		text:SetTextColor(1, 0, 0);
-	end
-	text:SetText(moneyFormatDiff);
-end
-
 local function UpdateValues()
-	timeCurr = time()
+	dayCurr = date("%y%m%d");
+	monthCurr = date("%y%m");
 	moneyCurr = GetMoney();
 	moneyDiff = moneyCurr - money;
+	moneyTemp = moneySession;
 	moneySession = moneyCurr - moneyStart;
-	if difftime(timeCurr, timeStart) > 86400 then
+
+	if dayCurr ~= dayStart then
 		moneyToday = 0;
-		timeStart = timeCurr;
-		m4xGoldTrack[realm][name]["time"] = timeCurr;
+		dayStart = dayCurr;
 	end
+	if monthCurr ~= monthStart then
+		moneyThisMonth = 0;
+		monthStart = monthCurr;
+	end
+
 	if moneyTemp ~= moneySession then
 		moneyToday = moneyToday + moneySession - moneyTemp;
+		moneyThisMonth = moneyThisMonth + moneySession - moneyTemp;
 	end
+
+	m4xGoldTrack[realm][name]["day"] = dayStart;
+	m4xGoldTrack[realm][name]["month"] = monthStart;
 	m4xGoldTrack[realm][name]["curr"] = moneyCurr;
 	m4xGoldTrack[realm][name]["session"] = moneySession;
 	m4xGoldTrack[realm][name]["today"] = moneyToday;
+	m4xGoldTrack[realm][name]["thismonth"] = moneyThisMonth;
 	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
 	moneyFormatCurr = GetCoinTextureString(abs(moneyCurr));
+
 	if moneyViewToggle == "Gold" then
-		FrameCurr();
+		text:SetTextColor(1, 1, 1);
+		text:SetText(moneyFormatCurr);
 	else
-		FrameDiff();
+		if moneyDiff >= 0 then
+			text:SetTextColor(0, 1, 0);
+		else
+			text:SetTextColor(1, 0, 0);
+		end
+		text:SetText(moneyFormatDiff);
 	end
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
 	if event == "PLAYER_ENTERING_WORLD" then
+		money = GetMoney();
+		moneyStart = GetMoney();
+		dayStart = date("%y%m%d");
+		monthStart = date("%y%m");
+
 		if not m4xGoldTrack[realm] then
 			m4xGoldTrack[realm] = {};
 		end
+
 		if not m4xGoldTrack[realm][name] then
 			m4xGoldTrack[realm][name] = {};
 			m4xGoldTrack[realm][name]["faction"] = faction;
 			m4xGoldTrack[realm][name]["class"] = class;
 		end
+
 		if m4xGoldTrack[realm][name]["today"] then
 			moneyToday = m4xGoldTrack[realm][name]["today"];
-			timeStart = m4xGoldTrack[realm][name]["time"];
+			moneyThisMonth = m4xGoldTrack[realm][name]["thismonth"];
+			dayStart = m4xGoldTrack[realm][name]["day"];
+			monthStart = m4xGoldTrack[realm][name]["month"];
 		end
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
-		money = GetMoney();
-		moneyStart = GetMoney();
 	end
-	moneyTemp = moneySession;
 	UpdateValues();
 end);
 
@@ -105,14 +119,21 @@ local function OnEnter(self)
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
 				classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
-				if difftime(timeCurr, m4xGoldTrack[tRealm][tName]["time"]) > 30 then
+
+				if date("%y%m%d") ~= m4xGoldTrack[tRealm][tName]["day"] and moneyViewToggle == "Today" then
 					m4xGoldTrack[tRealm][tName]["today"] = 0;
-					m4xGoldTrack[tRealm][tName]["time"] = timeCurr;
+					m4xGoldTrack[tRealm][tName]["day"] = date("%y%m%d");
 				end
+				if date("%y%m") ~= m4xGoldTrack[tRealm][tName]["month"] and moneyViewToggle == "Month" then
+					m4xGoldTrack[tRealm][tName]["thismonth"] = 0;
+					m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
+				end
+
 				if tKey == "curr" and moneyViewToggle == "Gold" then
 					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(tValue), classColor.r, classColor.g, classColor.b , 1, 1, 1);
 				end
-				if (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") then
+
+				if (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
 					if tValue >= 0 then
 						tColor = {0, 1, 0};
 					else
@@ -136,6 +157,8 @@ frame:SetScript("OnMouseUp", function(self, button)
 			moneyViewToggle = "Session";
 		elseif moneyViewToggle == "Session" then
 			moneyViewToggle = "Today";
+		elseif moneyViewToggle == "Today" then
+			moneyViewToggle = "Month";
 		else
 			moneyViewToggle = "Gold";
 		end
@@ -144,7 +167,6 @@ frame:SetScript("OnMouseUp", function(self, button)
 	if button == "RightButton" then
 		money = GetMoney();
 	end
-	moneyTemp = moneySession;
 	UpdateValues();
 end);
 
