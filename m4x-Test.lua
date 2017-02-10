@@ -16,6 +16,7 @@ local moneyDiff = 0;
 local moneyTemp = 0;
 local moneyFormatDiff = nil;
 local moneyFormatCurr = nil;
+local moneyTotal = 0;
 local moneyViewToggle = "Gold";
 m4xGoldTrack = {};
 
@@ -111,14 +112,15 @@ frame:SetScript("OnEvent", function(self, event, ...)
 end);
 
 local function OnEnter(self)
+	moneyTotal = 0;
 	GameTooltip:SetOwner(self, "ANCHOR_TOP");
 	GameTooltip:SetText(moneyViewToggle);
 	for tRealm, _ in pairs(m4xGoldTrack) do
 		GameTooltip:AddLine(" ");
 		GameTooltip:AddLine(tRealm);
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
+			classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
-				classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
 
 				if date("%y%m%d") ~= m4xGoldTrack[tRealm][tName]["day"] and moneyViewToggle == "Today" then
 					m4xGoldTrack[tRealm][tName]["today"] = 0;
@@ -129,12 +131,11 @@ local function OnEnter(self)
 					m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
 				end
 
-				if tKey == "curr" and moneyViewToggle == "Gold" then
-					GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(tValue), classColor.r, classColor.g, classColor.b , 1, 1, 1);
-				end
-
-				if (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
-					if tValue >= 0 then
+				if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
+					moneyTotal = moneyTotal + tValue;
+					if tKey == "curr" then
+						tColor = {1, 1, 1};
+					elseif tValue >= 0 then
 						tColor = {0, 1, 0};
 					else
 						tColor = {1, 0, 0};
@@ -144,6 +145,8 @@ local function OnEnter(self)
 			end
 		end
 	end
+	GameTooltip:AddLine(" ");
+	GameTooltip:AddDoubleLine("Total:", GetCoinTextureString(abs(moneyTotal)), 1, 1, 1 , unpack(tColor));
 	GameTooltip:Show();
 end
 
