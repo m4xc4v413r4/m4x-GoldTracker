@@ -18,17 +18,23 @@ local moneyFormatDiff = nil;
 local moneyFormatCurr = nil;
 local moneyTotal = 0;
 local moneyViewToggle = "Gold";
+local frameW, frameH = 100, 20;
 m4xGoldTrack = {};
 
 local frame = CreateFrame("Button", "m4xMoneyFrame", UIParent);
 local text = frame:CreateFontString(nil, "ARTWORK");
 
-text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
-text:SetJustifyH("LEFT");
-text:SetPoint("BOTTOM", UIParent, 0, 100);
-
+frame:SetPoint("BOTTOM", UIParent, 0, 100);
 frame:SetFrameStrata("HIGH");
-frame:SetAllPoints(text);
+
+text:SetPoint("CENTER", frame);
+text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
+
+frame:SetMovable(true);
+frame:EnableMouse(true);
+frame:RegisterForDrag("LeftButton");
+frame:SetScript("OnDragStart", frame.StartMoving);
+frame:SetScript("OnDragStop", frame.StopMovingOrSizing);
 
 frame:RegisterEvent("PLAYER_ENTERING_WORLD");
 frame:RegisterEvent("PLAYER_MONEY");
@@ -36,8 +42,6 @@ frame:RegisterEvent("PLAYER_TRADE_MONEY");
 frame:RegisterEvent("TRADE_MONEY_CHANGED");
 frame:RegisterEvent("SEND_MAIL_MONEY_CHANGED");
 frame:RegisterEvent("SEND_MAIL_COD_CHANGED");
-
-text:Show();
 
 local function UpdateValues()
 	dayCurr = date("%y%m%d");
@@ -81,6 +85,10 @@ local function UpdateValues()
 		end
 		text:SetText(moneyFormatDiff);
 	end
+
+	frameW, frameH = text:GetSize();
+	frame:SetWidth(frameW+10);
+	frame:SetHeight(frameH+8);
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
