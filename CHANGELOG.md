@@ -1,4 +1,4 @@
 # Change Log
-## v1.1.1 - 2017-02-01
-### Fixed
-- Updated multiple files to fix Packaging
+## v1.0 - 2017-02-16
+### Release
+- Initial Release

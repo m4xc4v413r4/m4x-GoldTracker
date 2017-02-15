@@ -1,8 +1,0 @@
-## Interface: 70100
-## Title: m4x GoldTrack
-## Notes: Test addon
-## Author: m4xc4v413r4
-## Version: 1.0
-## SavedVariables: m4xGoldTrack
-
-m4x-Test.lua
