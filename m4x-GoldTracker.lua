@@ -12,6 +12,7 @@ local moneyCurr = GetMoney();
 local moneySession = 0;
 local moneyToday = 0;
 local moneyThisMonth = 0;
+local moneyTracker = 0;
 local moneyDiff = 0;
 local moneyTemp = 0;
 local moneyFormatDiff = nil;
@@ -66,21 +67,22 @@ local function UpdateValues()
 	if dayCurr ~= dayStart then
 		moneyToday = 0;
 		dayStart = dayCurr;
-	end
-	if monthCurr ~= monthStart then
-		moneyThisMonth = 0;
-		monthStart = monthCurr;
+		if monthCurr ~= monthStart then
+			moneyThisMonth = 0;
+			monthStart = monthCurr;
+		end
 	end
 
 	if moneyTemp ~= moneySession then
 		moneyToday = moneyToday + moneySession - moneyTemp;
 		moneyThisMonth = moneyThisMonth + moneySession - moneyTemp;
+		moneyTracker = moneyTracker + moneySession - moneyTemp;
 	end
 
 	m4xGoldTrack[realm][name]["day"] = dayStart;
 	m4xGoldTrack[realm][name]["month"] = monthStart;
 	m4xGoldTrack[realm][name]["curr"] = moneyCurr;
-	m4xGoldTrack[realm][name]["session"] = moneySession;
+	m4xGoldTrack[realm][name]["tracker"] = moneyTracker;
 	m4xGoldTrack[realm][name]["today"] = moneyToday;
 	m4xGoldTrack[realm][name]["thismonth"] = moneyThisMonth;
 	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
@@ -126,6 +128,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 			moneyThisMonth = m4xGoldTrack[realm][name]["thismonth"];
 			dayStart = m4xGoldTrack[realm][name]["day"];
 			monthStart = m4xGoldTrack[realm][name]["month"];
+			moneyTracker = m4xGoldTrack[realm][name]["tracker"];
 		end
 
 		if m4xGoldTrack[realm][name]["point"] then
@@ -153,13 +156,17 @@ local function charList(opt)
 			dropData.notCheckable = nil;
 			dropData.disabled = nil;
 		end
+
 		tempHidden[tRealm] = {};
 		tempHidden[tRealm]["hiddenCounter"] = 0;
 		tempHidden[tRealm]["totalCounter"] = 0;
+
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
 			classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
+
 			if opt == "reset" then
-				m4xGoldTrack[tRealm][tName]["session"] = 0;
+				m4xGoldTrack[tRealm][tName]["tracker"] = 0;
+				moneyTracker = 0;
 			elseif opt == "chars" then
 				dropData.text = tName;
 				dropData.func = function() if m4xGoldTrack[tRealm][tName]["hideChar"] == 0 then m4xGoldTrack[tRealm][tName]["hideChar"] = 1; else m4xGoldTrack[tRealm][tName]["hideChar"] = 0; end end
@@ -171,6 +178,7 @@ local function charList(opt)
 				end
 				tempHidden[tRealm]["totalCounter"] = tempHidden[tRealm]["totalCounter"] + 1;
 			end
+
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
 				if opt == "ttip" then
 					if date("%y%m%d") ~= m4xGoldTrack[tRealm][tName]["day"] and moneyViewToggle == "Today" then
@@ -182,7 +190,7 @@ local function charList(opt)
 						end
 					end
 
-					if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
+					if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "tracker" and moneyViewToggle == "Tracker") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
 						moneyTotal = moneyTotal + tValue;
 						if tKey == "curr" then
 							tColor = {1, 1, 1};
@@ -206,7 +214,7 @@ local function OnEnter(self)
 	moneyTotal = 0;
 
 	GameTooltip:SetOwner(self, "ANCHOR_TOP");
-	GameTooltip:SetText(moneyViewToggle, 1, 1, 1);
+	GameTooltip:SetText(moneyViewToggle);
 
 	charList("check");
 	charList("ttip");
@@ -242,7 +250,6 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.text = "m4x GoldTracker";
 		UIDropDownMenu_AddButton(dropData, dropLevel);
 
-		dropData.keepShownOnClick = 1;
 		dropData.isTitle = nil;
 		dropData.disabled = nil;
 		dropData.notCheckable = nil;
@@ -252,6 +259,7 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.checked = not frame:IsMovable();
 		UIDropDownMenu_AddButton(dropData, dropLevel);
 
+		dropData.keepShownOnClick = 1;
 		dropData.hasArrow = 1;
 		dropData.notCheckable = 1;
 
@@ -267,7 +275,7 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.hasArrow = nil;
 		dropData.keepShownOnClick = nil;
 
-		dropData.text = "Hide Tracker";
+		dropData.text = "Hide Display";
 		dropData.func = function() frame:Hide(); end
 		UIDropDownMenu_AddButton(dropData, dropLevel);
 
@@ -285,7 +293,7 @@ dropdown.initialize = function(self, dropLevel)
 			dropData.func = function() money = GetMoney(); UpdateValues(); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
-			dropData.text = "Session";
+			dropData.text = "Tracker";
 			dropData.func = function() charList("reset"); UpdateValues(); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
@@ -298,8 +306,8 @@ end
 frame:SetScript("OnMouseUp", function(self, button)
 	if button == "LeftButton" then
 		if moneyViewToggle == "Gold" then
-			moneyViewToggle = "Session";
-		elseif moneyViewToggle == "Session" then
+			moneyViewToggle = "Tracker";
+		elseif moneyViewToggle == "Tracker" then
 			moneyViewToggle = "Today";
 		elseif moneyViewToggle == "Today" then
 			moneyViewToggle = "Month";
