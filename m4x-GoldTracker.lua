@@ -19,6 +19,7 @@ local moneyFormatCurr = nil;
 local moneyTotal = 0;
 local moneyViewToggle = "Gold";
 local frameW, frameH = 100, 20;
+local tempHidden = {};
 local dropData = {};
 m4xGoldTrack = {};
 
@@ -28,15 +29,13 @@ local dropdown = CreateFrame("Button", "m4xDropDown");
 
 dropdown.displayMode = "MENU";
 
-frame:SetPoint("BOTTOM", UIParent, 0, 100);
+frame:SetPoint("CENTER", UIParent);
 frame:SetFrameStrata("HIGH");
 
 text:SetPoint("CENTER", frame);
 text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
 
-frame:SetMovable(true);
 frame:EnableMouse(true);
-frame:RegisterForDrag("LeftButton");
 frame:SetScript("OnDragStart", frame.StartMoving);
 frame:SetScript("OnDragStop", frame.StopMovingOrSizing);
 
@@ -128,22 +127,19 @@ frame:SetScript("OnEvent", function(self, event, ...)
 			dayStart = m4xGoldTrack[realm][name]["day"];
 			monthStart = m4xGoldTrack[realm][name]["month"];
 		end
+
+		if m4xGoldTrack[realm][name]["point"] then
+			frame:SetPoint(m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"]);
+		end
+
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
 	end
 	UpdateValues();
 end);
 
-local function resetTracker(opt)
-	if opt == "tracker" then
-		money = GetMoney();
-	-- elseif opt == "session" then
-	end
-	UpdateValues();
-end
-
 local function charList(opt)
 	for tRealm, _ in pairs(m4xGoldTrack) do
-		if opt == "ttip" then
+		if (opt == "ttip") and (tempHidden[tRealm]["hiddenCounter"] ~= tempHidden[tRealm]["totalCounter"]) then
 			GameTooltip:AddLine(" ");
 			GameTooltip:AddLine(tRealm);
 		elseif opt == "chars" then
@@ -157,24 +153,33 @@ local function charList(opt)
 			dropData.notCheckable = nil;
 			dropData.disabled = nil;
 		end
+		tempHidden[tRealm] = {};
+		tempHidden[tRealm]["hiddenCounter"] = 0;
+		tempHidden[tRealm]["totalCounter"] = 0;
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
 			classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
-			if opt == "chars" then
+			if opt == "reset" then
+				m4xGoldTrack[tRealm][tName]["session"] = 0;
+			elseif opt == "chars" then
 				dropData.text = tName;
 				dropData.func = function() if m4xGoldTrack[tRealm][tName]["hideChar"] == 0 then m4xGoldTrack[tRealm][tName]["hideChar"] = 1; else m4xGoldTrack[tRealm][tName]["hideChar"] = 0; end end
 				dropData.checked = m4xGoldTrack[tRealm][tName]["hideChar"] == 1;
 				UIDropDownMenu_AddButton(dropData, 2);
+			elseif opt == "check" then
+				if m4xGoldTrack[tRealm][tName]["hideChar"] == 1 then
+					tempHidden[tRealm]["hiddenCounter"] = tempHidden[tRealm]["hiddenCounter"] + 1;
+				end
+				tempHidden[tRealm]["totalCounter"] = tempHidden[tRealm]["totalCounter"] + 1;
 			end
 			for tKey, tValue in pairs(m4xGoldTrack[tRealm][tName]) do
 				if opt == "ttip" then
 					if date("%y%m%d") ~= m4xGoldTrack[tRealm][tName]["day"] and moneyViewToggle == "Today" then
 						m4xGoldTrack[tRealm][tName]["today"] = 0;
 						m4xGoldTrack[tRealm][tName]["day"] = date("%y%m%d");
-					end
-
-					if date("%y%m") ~= m4xGoldTrack[tRealm][tName]["month"] and moneyViewToggle == "Month" then
-						m4xGoldTrack[tRealm][tName]["thismonth"] = 0;
-						m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
+						if date("%y%m") ~= m4xGoldTrack[tRealm][tName]["month"] and moneyViewToggle == "Month" then
+							m4xGoldTrack[tRealm][tName]["thismonth"] = 0;
+							m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
+						end
 					end
 
 					if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "session" and moneyViewToggle == "Session") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
@@ -186,6 +191,7 @@ local function charList(opt)
 						else
 							tColor = {1, 0, 0};
 						end
+						
 						if m4xGoldTrack[tRealm][tName]["hideChar"] == 0 then
 							GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(abs(tValue)), classColor.r, classColor.g, classColor.b , unpack(tColor));
 						end
@@ -202,6 +208,7 @@ local function OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_TOP");
 	GameTooltip:SetText(moneyViewToggle, 1, 1, 1);
 
+	charList("check");
 	charList("ttip");
 	
 	GameTooltip:AddLine(" ");
@@ -213,29 +220,44 @@ frame:SetScript("OnLeave", function(self)
 	GameTooltip:Hide();
 end);
 
+local function lockTracker()
+	if not frame:IsMovable() then
+		frame:SetMovable(true);
+		frame:RegisterForDrag("LeftButton");
+	else
+		frame:SetMovable(false);
+		frame:RegisterForDrag();
+		m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"] = frame:GetPoint();
+	end
+end
+
 dropdown.initialize = function(self, dropLevel)
-    if not dropLevel then return end
-    wipe(dropData);
+	if not dropLevel then return end
+	wipe(dropData);
 
-    if dropLevel == 1 then
-        dropData.isTitle = 1;
-        dropData.notCheckable = 1;
+	if dropLevel == 1 then
+		dropData.isTitle = 1;
+		dropData.notCheckable = 1;
 
-        dropData.text = "m4x GoldTracker";
-        UIDropDownMenu_AddButton(dropData, dropLevel);
+		dropData.text = "m4x GoldTracker";
+		UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		dropData.keepShownOnClick = 1;
-        dropData.isTitle = nil;
+		dropData.isTitle = nil;
 		dropData.disabled = nil;
+		dropData.notCheckable = nil;
 
-        dropData.text = "Lock Tracker";
-        UIDropDownMenu_AddButton(dropData, dropLevel);
+		dropData.text = "Lock Tracker";
+		dropData.func = function() lockTracker(); end
+		dropData.checked = not frame:IsMovable();
+		UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		dropData.hasArrow = 1;
+		dropData.notCheckable = 1;
 
 		dropData.value = "reset";
-        dropData.text = "Reset";
-        UIDropDownMenu_AddButton(dropData, dropLevel);
+		dropData.text = "Reset";
+		UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		dropData.value = "char";
 		dropData.text = "Hide Characters";
@@ -245,32 +267,32 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.hasArrow = nil;
 		dropData.keepShownOnClick = nil;
 
-        dropData.text = "Hide Tracker";
-        dropData.func = function() frame:Hide(); end
-        UIDropDownMenu_AddButton(dropData, dropLevel);
+		dropData.text = "Hide Tracker";
+		dropData.func = function() frame:Hide(); end
+		UIDropDownMenu_AddButton(dropData, dropLevel);
 
-        dropData.text = CLOSE;
-        dropData.func = function() CloseDropDownMenus(); end
-        dropData.checked = nil;
-        UIDropDownMenu_AddButton(dropData, dropLevel);
+		dropData.text = CLOSE;
+		dropData.func = function() CloseDropDownMenus(); end
+		dropData.checked = nil;
+		UIDropDownMenu_AddButton(dropData, dropLevel);
 
 	elseif dropLevel == 2 then
 		dropData.keepShownOnClick = 1;
 		dropData.notCheckable = 1;
 
 		if UIDROPDOWNMENU_MENU_VALUE == "reset" then
-			dropData.text = "Tracker";
-			dropData.func = function() resetTracker("tracker"); end
+			dropData.text = "Display";
+			dropData.func = function() money = GetMoney(); UpdateValues(); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
-			-- dropData.text = "Session";
-			-- dropData.func = function() resetTracker("session"); end
-			-- UIDropDownMenu_AddButton(dropData, dropLevel);
+			dropData.text = "Session";
+			dropData.func = function() charList("reset"); UpdateValues(); end
+			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "char" then
 			charList("chars");
 		end
-    end
+	end
 end
 
 frame:SetScript("OnMouseUp", function(self, button)
