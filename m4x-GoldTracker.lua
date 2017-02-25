@@ -56,6 +56,20 @@ SlashCmdList["M4XGOLDTRACKER"] = function()
 	end
 end
 
+local function MoneyColor(opt)
+	if moneyViewToggle == "Gold" then
+		moneyTextColor = {1, 1, 1};
+		text:SetText(moneyFormatCurr);
+	else
+		if opt >= 0 then
+			moneyTextColor = {0, 1, 0};
+		else
+			moneyTextColor = {1, 0, 0};
+		end
+		text:SetText(moneyFormatDiff);
+	end
+end
+
 local function UpdateValues()
 	dayCurr = date("%y%m%d");
 	monthCurr = date("%y%m");
@@ -88,17 +102,9 @@ local function UpdateValues()
 	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
 	moneyFormatCurr = GetCoinTextureString(abs(moneyCurr));
 
-	if moneyViewToggle == "Gold" then
-		text:SetTextColor(1, 1, 1);
-		text:SetText(moneyFormatCurr);
-	else
-		if moneyDiff >= 0 then
-			text:SetTextColor(0, 1, 0);
-		else
-			text:SetTextColor(1, 0, 0);
-		end
-		text:SetText(moneyFormatDiff);
-	end
+	MoneyColor(moneyDiff);
+
+	text:SetTextColor(unpack(moneyTextColor));
 
 	frameW, frameH = text:GetSize();
 	frame:SetWidth(frameW+10);
@@ -140,7 +146,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 	UpdateValues();
 end);
 
-local function charList(opt)
+local function CharList(opt)
 	for tRealm, _ in pairs(m4xGoldTrack) do
 		if (opt == "ttip") and (tempHidden[tRealm]["hiddenCounter"] ~= tempHidden[tRealm]["totalCounter"]) then
 			GameTooltip:AddLine(" ");
@@ -192,16 +198,11 @@ local function charList(opt)
 
 					if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "tracker" and moneyViewToggle == "Tracker") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
 						moneyTotal = moneyTotal + tValue;
-						if tKey == "curr" then
-							tColor = {1, 1, 1};
-						elseif tValue >= 0 then
-							tColor = {0, 1, 0};
-						else
-							tColor = {1, 0, 0};
-						end
-						
+
+						MoneyColor(tValue);
+
 						if m4xGoldTrack[tRealm][tName]["hideChar"] == 0 then
-							GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(abs(tValue)), classColor.r, classColor.g, classColor.b , unpack(tColor));
+							GameTooltip:AddDoubleLine(tName .. ":", GetCoinTextureString(abs(tValue)), classColor.r, classColor.g, classColor.b , unpack(moneyTextColor));
 						end
 					end
 				end
@@ -216,11 +217,12 @@ local function OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_TOP");
 	GameTooltip:SetText(moneyViewToggle);
 
-	charList("check");
-	charList("ttip");
-	
+	CharList("check");
+	CharList("ttip");
+	MoneyColor(moneyTotal);
+
 	GameTooltip:AddLine(" ");
-	GameTooltip:AddDoubleLine("Total:", GetCoinTextureString(abs(moneyTotal)), 1, 1, 1 , unpack(tColor));
+	GameTooltip:AddDoubleLine("Total:", GetCoinTextureString(abs(moneyTotal)), 1, 1, 1 , unpack(moneyTextColor));
 	GameTooltip:Show();
 end
 
@@ -228,7 +230,7 @@ frame:SetScript("OnLeave", function(self)
 	GameTooltip:Hide();
 end);
 
-local function lockTracker()
+local function LockTracker()
 	if not frame:IsMovable() then
 		frame:SetMovable(true);
 		frame:RegisterForDrag("LeftButton");
@@ -236,6 +238,23 @@ local function lockTracker()
 		frame:SetMovable(false);
 		frame:RegisterForDrag();
 		m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"] = frame:GetPoint();
+	end
+end
+
+local function ChooseFont()
+	local _, fSize, _ = text:GetFont()
+	local fSizeInt = math.floor(fSize+0.5);
+	for i = fSizeInt - 3, fSizeInt + 3 do
+		if i > 0 then
+			if i == fSizeInt then
+				dropData.disabled = 1;
+			else
+				dropData.disabled = nil;
+			end
+			dropData.text = i;
+			dropData.func = function() text:SetFont("Fonts\\FRIZQT__.TTF", i, "OUTLINE"); end
+			UIDropDownMenu_AddButton(dropData, 2);
+		end
 	end
 end
 
@@ -255,7 +274,7 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.notCheckable = nil;
 
 		dropData.text = "Lock Tracker";
-		dropData.func = function() lockTracker(); end
+		dropData.func = function() LockTracker(); end
 		dropData.checked = not frame:IsMovable();
 		UIDropDownMenu_AddButton(dropData, dropLevel);
 
@@ -269,6 +288,10 @@ dropdown.initialize = function(self, dropLevel)
 
 		dropData.value = "char";
 		dropData.text = "Hide Characters";
+		UIDropDownMenu_AddButton(dropData, dropLevel);
+
+		dropData.value = "font";
+		dropData.text = "Font Size";
 		UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		dropData.value = nil;
@@ -294,11 +317,15 @@ dropdown.initialize = function(self, dropLevel)
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 			dropData.text = "Tracker";
-			dropData.func = function() charList("reset"); UpdateValues(); end
+			dropData.func = function() CharList("reset"); UpdateValues(); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "char" then
-			charList("chars");
+			CharList("chars");
+		
+		elseif UIDROPDOWNMENU_MENU_VALUE == "font" then
+			dropData.keepShownOnClick = nil;
+			ChooseFont();
 		end
 	end
 end
