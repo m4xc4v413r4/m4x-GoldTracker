@@ -141,6 +141,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
 			frame:SetPoint(m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"]);
 		end
 
+		if m4xGoldTrack[realm][name]["font"] then
+			text:SetFont("Fonts\\FRIZQT__.TTF", m4xGoldTrack[realm][name]["font"], "OUTLINE");
+		end
+
 		frame:UnregisterEvent("PLAYER_ENTERING_WORLD");
 	end
 	UpdateValues();
@@ -252,7 +256,7 @@ local function ChooseFont()
 				dropData.disabled = nil;
 			end
 			dropData.text = i;
-			dropData.func = function() text:SetFont("Fonts\\FRIZQT__.TTF", i, "OUTLINE"); end
+			dropData.func = function() text:SetFont("Fonts\\FRIZQT__.TTF", i, "OUTLINE"); m4xGoldTrack[realm][name]["font"] = i end
 			UIDropDownMenu_AddButton(dropData, 2);
 		end
 	end
@@ -273,7 +277,7 @@ dropdown.initialize = function(self, dropLevel)
 		dropData.disabled = nil;
 		dropData.notCheckable = nil;
 
-		dropData.text = "Lock Tracker";
+		dropData.text = "Lock Display";
 		dropData.func = function() LockTracker(); end
 		dropData.checked = not frame:IsMovable();
 		UIDropDownMenu_AddButton(dropData, dropLevel);
@@ -317,8 +321,19 @@ dropdown.initialize = function(self, dropLevel)
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 			dropData.text = "Tracker";
-			dropData.func = function() CharList("reset"); UpdateValues(); end
+			dropData.func = function() CharList("reset"); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
+
+			-- dropData.disabled = 1;
+			
+			-- dropData.text = "";
+			-- UIDropDownMenu_AddButton(dropData, dropLevel)
+
+			-- dropData.disabled = nil;
+
+			-- dropData.text = "|cffff0000Position/Size|r";
+			-- dropData.func = function() frame:SetPoint("CENTER", nil, "CENTER", 0, 0); m4xGoldTrack[realm][name]["point"] = nil; text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE"); end
+			-- UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "char" then
 			CharList("chars");
@@ -341,12 +356,11 @@ frame:SetScript("OnMouseUp", function(self, button)
 		else
 			moneyViewToggle = "Gold";
 		end
+		UpdateValues();
 		OnEnter(self);
-	end
-	if button == "RightButton" then
+	elseif button == "RightButton" then
 		ToggleDropDownMenu(1, nil, dropdown, self:GetName(), 0, 0)
 	end
-	UpdateValues();
 end);
 
 frame:SetScript("OnEnter", OnEnter);
