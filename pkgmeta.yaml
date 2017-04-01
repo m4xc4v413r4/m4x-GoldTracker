@@ -1,7 +1,9 @@
 ignore:
-    - README.md
-    - CHANGELOG.md
+	- README.md
+	- CHANGELOG.md
 
-manual-changelog: CHANGELOG.md
+manual-changelog:
+	filename: CHANGELOG.md
+	markup-type: markdown
 
-license-output: LICENSE.txt
+license-output: LICENSE.md

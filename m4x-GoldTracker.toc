@@ -1,5 +1,5 @@
-## Interface: 70100
-## Title: m4x Gold Tracker
+## Interface: 70200
+## Title: m4x GoldTracker
 ## Notes: Track all them Golds
 ## Author: m4xc4v413r4
 ## Version: @project-version@

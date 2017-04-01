@@ -15,18 +15,16 @@ local moneyThisMonth = 0;
 local moneyTracker = 0;
 local moneyDiff = 0;
 local moneyTemp = 0;
-local moneyFormatDiff = nil;
-local moneyFormatCurr = nil;
 local moneyTotal = 0;
 local moneyViewToggle = "Gold";
-local frameW, frameH = 100, 20;
+local frameW, frameH = 200, 20;
 local tempHidden = {};
 local dropData = {};
 m4xGoldTrack = {};
 
 local frame = CreateFrame("Button", "m4xMoneyFrame", UIParent);
 local text = frame:CreateFontString(nil, "ARTWORK");
-local dropdown = CreateFrame("Button", "m4xDropDown");
+local dropdown = CreateFrame("Button", "m4xMoneyDropDown");
 
 dropdown.displayMode = "MENU";
 
@@ -59,14 +57,14 @@ end
 local function MoneyColor(opt)
 	if moneyViewToggle == "Gold" then
 		moneyTextColor = {1, 1, 1};
-		text:SetText(moneyFormatCurr);
+		text:SetText(GetCoinTextureString(abs(moneyCurr)));
 	else
 		if opt >= 0 then
 			moneyTextColor = {0, 1, 0};
 		else
 			moneyTextColor = {1, 0, 0};
 		end
-		text:SetText(moneyFormatDiff);
+		text:SetText(GetCoinTextureString(abs(moneyDiff)));
 	end
 end
 
@@ -99,8 +97,6 @@ local function UpdateValues()
 	m4xGoldTrack[realm][name]["tracker"] = moneyTracker;
 	m4xGoldTrack[realm][name]["today"] = moneyToday;
 	m4xGoldTrack[realm][name]["thismonth"] = moneyThisMonth;
-	moneyFormatDiff = GetCoinTextureString(abs(moneyDiff));
-	moneyFormatCurr = GetCoinTextureString(abs(moneyCurr));
 
 	MoneyColor(moneyDiff);
 
@@ -138,7 +134,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 		end
 
 		if m4xGoldTrack[realm][name]["point"] then
-			frame:SetPoint(m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"]);
+			frame:SetPoint(m4xGoldTrack[realm][name]["point"], nil, m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"]);
 		end
 
 		if m4xGoldTrack[realm][name]["font"] then
@@ -172,11 +168,12 @@ local function CharList(opt)
 		tempHidden[tRealm]["totalCounter"] = 0;
 
 		for tName, _ in pairs(m4xGoldTrack[tRealm]) do
-			classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
+			local classColor = RAID_CLASS_COLORS[m4xGoldTrack[tRealm][tName]["class"]];
 
 			if opt == "reset" then
 				m4xGoldTrack[tRealm][tName]["tracker"] = 0;
 				moneyTracker = 0;
+				moneyTotal = 0;
 			elseif opt == "chars" then
 				dropData.text = tName;
 				dropData.func = function() if m4xGoldTrack[tRealm][tName]["hideChar"] == 0 then m4xGoldTrack[tRealm][tName]["hideChar"] = 1; else m4xGoldTrack[tRealm][tName]["hideChar"] = 0; end end
@@ -194,10 +191,10 @@ local function CharList(opt)
 					if date("%y%m%d") ~= m4xGoldTrack[tRealm][tName]["day"] and moneyViewToggle == "Today" then
 						m4xGoldTrack[tRealm][tName]["today"] = 0;
 						m4xGoldTrack[tRealm][tName]["day"] = date("%y%m%d");
-						if date("%y%m") ~= m4xGoldTrack[tRealm][tName]["month"] and moneyViewToggle == "Month" then
-							m4xGoldTrack[tRealm][tName]["thismonth"] = 0;
-							m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
-						end
+					end
+					if date("%y%m") ~= m4xGoldTrack[tRealm][tName]["month"] and moneyViewToggle == "Month" then
+						m4xGoldTrack[tRealm][tName]["thismonth"] = 0;
+						m4xGoldTrack[tRealm][tName]["month"] = date("%y%m");
 					end
 
 					if (tKey == "curr" and moneyViewToggle == "Gold") or (tKey == "tracker" and moneyViewToggle == "Tracker") or (tKey == "today" and moneyViewToggle == "Today") or (tKey == "thismonth" and moneyViewToggle == "Month") then
@@ -241,7 +238,7 @@ local function LockTracker()
 	else
 		frame:SetMovable(false);
 		frame:RegisterForDrag();
-		m4xGoldTrack[realm][name]["point"], m4xGoldTrack[realm][name]["relativeTo"], m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"] = frame:GetPoint();
+		m4xGoldTrack[realm][name]["point"], _, m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"] = frame:GetPoint();
 	end
 end
 
@@ -260,6 +257,16 @@ local function ChooseFont()
 			UIDropDownMenu_AddButton(dropData, 2);
 		end
 	end
+end
+
+local function ResetDisplay()
+	frame:ClearAllPoints();
+
+	frame:SetPoint("CENTER", UIParent);
+	m4xGoldTrack[realm][name]["point"] = nil;
+
+	text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE");
+	m4xGoldTrack[realm][name]["font"] = 15;
 end
 
 dropdown.initialize = function(self, dropLevel)
@@ -321,19 +328,20 @@ dropdown.initialize = function(self, dropLevel)
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 			dropData.text = "Tracker";
-			dropData.func = function() CharList("reset"); end
+			dropData.func = function() CharList("reset"); UpdateValues(); end
 			UIDropDownMenu_AddButton(dropData, dropLevel);
 
-			-- dropData.disabled = 1;
+			dropData.disabled = 1;
 			
-			-- dropData.text = "";
-			-- UIDropDownMenu_AddButton(dropData, dropLevel)
+			dropData.text = "";
+			UIDropDownMenu_AddButton(dropData, dropLevel)
 
-			-- dropData.disabled = nil;
+			dropData.disabled = nil;
+			dropData.keepShownOnClick = nil;
 
-			-- dropData.text = "|cffff0000Position/Size|r";
-			-- dropData.func = function() frame:SetPoint("CENTER", nil, "CENTER", 0, 0); m4xGoldTrack[realm][name]["point"] = nil; text:SetFont("Fonts\\FRIZQT__.TTF", 15, "OUTLINE"); end
-			-- UIDropDownMenu_AddButton(dropData, dropLevel);
+			dropData.text = "|cffff0000Position/Size|r";
+			dropData.func = function() ResetDisplay(); end
+			UIDropDownMenu_AddButton(dropData, dropLevel);
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "char" then
 			CharList("chars");
