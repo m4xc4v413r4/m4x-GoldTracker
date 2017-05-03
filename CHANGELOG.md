@@ -1,3 +1,7 @@
+## v1.2.2 - 2017-05-03
+### Fixed
+- Problem with some anchor positions reseting to center
+
 ## v1.2.1 - 2017-04-01
 ### Fixed
 - Bug where the Month tooltip didn't reset when month changed

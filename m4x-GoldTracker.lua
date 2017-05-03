@@ -134,6 +134,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
 		end
 
 		if m4xGoldTrack[realm][name]["point"] then
+			frame:ClearAllPoints();
+			
 			frame:SetPoint(m4xGoldTrack[realm][name]["point"], nil, m4xGoldTrack[realm][name]["relativePoint"], m4xGoldTrack[realm][name]["xOfs"], m4xGoldTrack[realm][name]["yOfs"]);
 		end
 
